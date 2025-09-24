@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Updated color tokens to match Caesar Intranet design brief */
+    --background: 0 0% 100%; /* #ffffff */
+    --foreground: 240 10% 3.9%; /* #374151 */
+    --card: 60 9.1% 97.8%; /* #fefce8 */
+    --card-foreground: 240 10% 3.9%; /* #374151 */
+    --popover: 0 0% 100%; /* #ffffff */
+    --popover-foreground: 240 10% 3.9%; /* #374151 */
+    --primary: 25 95% 53%; /* #d97706 */
+    --primary-foreground: 0 0% 100%; /* #ffffff */
+    --secondary: 45 93% 47%; /* #f59e0b */
+    --secondary-foreground: 0 0% 100%; /* #ffffff */
+    --muted: 60 9.1% 97.8%; /* #fefce8 */
+    --muted-foreground: 240 10% 3.9%; /* #374151 */
+    --accent: 45 93% 47%; /* #f59e0b */
+    --accent-foreground: 240 10% 3.9%; /* #374151 */
+    --destructive: 0 84.2% 60.2%; /* #dc2626 */
+    --destructive-foreground: 0 0% 100%; /* #ffffff */
+    --border: 240 5.9% 90%; /* #d1d5db */
+    --input: 240 5.9% 90%; /* #f3f4f6 */
+    --ring: 25 95% 53%; /* #d97706 */
+    --chart-1: 25 95% 53%; /* #d97706 */
+    --chart-2: 45 93% 47%; /* #f59e0b */
+    --chart-3: 0 84.2% 60.2%; /* #dc2626 */
+    --chart-4: 240 5.9% 10%; /* #4b5563 */
+    --chart-5: 240 10% 3.9%; /* #374151 */
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 25 95% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 45 93% 47%;
+    --secondary-foreground: 240 10% 3.9%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 45 93% 47%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --chart-1: 25 95% 53%;
+    --chart-2: 45 93% 47%;
+    --chart-3: 0 84.2% 60.2%;
+    --chart-4: 240 5.9% 10%;
+    --chart-5: 240 10% 3.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

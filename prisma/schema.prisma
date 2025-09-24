@@ -1,0 +1,204 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  name          String?
+  password      String?
+  role          Role
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Client {
+  id                 Int           @id @default(autoincrement())
+  name               String
+  type               ClientType
+  address            String?
+  apartment          String?
+  city               String?
+  state              String?
+  zipCode            String?
+  country            String?
+  active             Boolean       @default(true)
+  centralCrmClientId String?       @unique
+  lastSyncedAt       DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  contacts           Contact[]
+  phones             PhoneNumber[]
+  sites              Site[]
+}
+
+model PhoneNumber {
+  id         Int       @id @default(autoincrement())
+  clientId   Int
+  contactId  Int?
+  type       PhoneType
+  number     String
+  isPrimary  Boolean   @default(false)
+  isVerified Boolean   @default(false)
+  client     Client    @relation(fields: [clientId], references: [id])
+  contact    Contact?  @relation(fields: [contactId], references: [id])
+}
+
+model Contact {
+  id                  Int           @id @default(autoincrement())
+  clientId            Int
+  firstName           String
+  lastName            String
+  email               String?       @unique
+  isPrimary           Boolean       @default(false)
+  gender              String?
+  language            String?
+  centralCrmContactId String?       @unique
+  lastSyncedAt        DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  client              Client        @relation(fields: [clientId], references: [id])
+  phones              PhoneNumber[]
+}
+
+model Project {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  key       String   @unique
+  domain    String   @unique
+  status    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sites     Site[]
+}
+
+model Site {
+  id              Int           @id @default(autoincrement())
+  clientId        Int?
+  projectId       Int
+  domain          String?
+  status          InstallStatus @default(PENDING)
+  installerSiteId String?       @unique
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  steps           InstallStep[]
+  client          Client?       @relation(fields: [clientId], references: [id])
+  project         Project       @relation(fields: [projectId], references: [id])
+}
+
+model InstallStep {
+  id        Int        @id @default(autoincrement())
+  siteId    Int
+  stepType  StepType
+  status    StepStatus @default(PENDING)
+  stepData  Json?
+  errorMsg  String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  site      Site       @relation(fields: [siteId], references: [id])
+}
+
+model Account {
+  id                Int     @id @default(autoincrement())
+  userId            Int
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  sessionToken String   @unique
+  userId       Int
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Setting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  group     String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EntityMeta {
+  id        Int      @id @default(autoincrement())
+  relId     Int
+  relType   String
+  name      String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([relId, relType, name])
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+enum PhoneType {
+  PHONE
+  BUSINESS
+  WORK
+  HOME
+  MOBILE
+  OTHER
+}
+
+enum InstallStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum StepType {
+  PRE_INSTALLATION
+  DB_CREATION
+  CPANEL_ENTRY
+  CLOUDFLARE_ENTRY
+  DIRECTORY_SETUP
+}
+
+enum StepStatus {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+}
+
+enum ClientType {
+  ORGANIZATION
+  PERSON
+}
