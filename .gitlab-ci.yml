@@ -1,0 +1,35 @@
+image: node:18
+
+stages:
+  - build
+  - deploy
+
+variables:
+  AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+  AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+  AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
+
+cache:
+  paths:
+    - node_modules/
+
+before_script:
+  - npm install -g @aws-amplify/cli
+
+build_app:
+  stage: build
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - .next
+      - public
+
+deploy_amplify:
+  stage: deploy
+  script:
+    - amplify pull --appId d13hh9dkm7yd88 --envName prod --yes
+    - amplify publish --yes
+  only:
+    - master
