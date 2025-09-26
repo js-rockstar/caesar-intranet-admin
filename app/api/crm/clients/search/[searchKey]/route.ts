@@ -85,6 +85,16 @@ export async function GET(
     }
 
     if (!crmResponse.ok) {
+      // Handle 404 as "no results found" instead of an error
+      if (crmResponse.status === 404) {
+        return NextResponse.json({
+          clients: [],
+          searchKey: searchKey.trim(),
+          totalResults: 0,
+          totalRecords: 0
+        })
+      }
+      
       const errorText = await crmResponse.text()
       return NextResponse.json({ 
         error: "Failed to search clients in CRM",
