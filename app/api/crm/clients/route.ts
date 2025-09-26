@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { requireAuth, createAuthResponse } from "@/lib/auth-middleware"
 import { prisma } from "@/lib/prisma"
 
 // Helper function to decode HTML entities
@@ -26,18 +25,15 @@ function decodeHtmlEntities(text: string): string {
   
   return decoded
 }
-import https from "https"
 
 export async function GET(request: NextRequest) {
+  let crmUrl = ""
+  
   try {
-    const session = await getServerSession(authOptions)
+    const authResult = await requireAuth()
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    if (session.user.role !== "ADMIN" && session.user.role !== "STAFF") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if ("error" in authResult) {
+      return createAuthResponse(authResult)
     }
 
     // Get CRM settings from database
@@ -48,6 +44,7 @@ export async function GET(request: NextRequest) {
     const crmToken = await prisma.setting.findUnique({
       where: { key: "CENTRAL_CRM_TOKEN" }
     })
+
 
     if (!crmEndpoint?.value || !crmToken?.value) {
       return NextResponse.json({ 
@@ -61,36 +58,31 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "25", 10)
 
     // Make request to CRM API
-    const crmUrl = `${crmEndpoint.value}clients?offset=${offset}&limit=${limit}`
+    crmUrl = `${crmEndpoint.value}clients?offset=${offset}&limit=${limit}`
     
-    // Create a custom fetch function that handles SSL certificates
-    const customFetch = async (url: string, options: RequestInit) => {
-      // For development, temporarily disable SSL verification
-      const originalRejectUnauthorized = process.env.NODE_TLS_REJECT_UNAUTHORIZED
-      if (process.env.NODE_ENV === 'development') {
-        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
-      }
-      
-      try {
-        const response = await fetch(url, options)
-        return response
-      } finally {
-        // Restore original setting
-        if (originalRejectUnauthorized !== undefined) {
-          process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalRejectUnauthorized
-        } else {
-          delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
+    
+    // Set SSL handling for development mode
+    const originalRejectUnauthorized = process.env.NODE_TLS_REJECT_UNAUTHORIZED
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+    
+    let crmResponse
+    try {
+      crmResponse = await fetch(crmUrl, {
+        method: "GET",
+        headers: {
+          "authtoken": crmToken.value,
+          "Content-Type": "application/json"
         }
+      })
+    } finally {
+      // Restore original SSL setting
+      if (originalRejectUnauthorized !== undefined) {
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalRejectUnauthorized
+      } else {
+        delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
       }
     }
     
-    const crmResponse = await customFetch(crmUrl, {
-      method: "GET",
-      headers: {
-        "authtoken": crmToken.value,
-        "Content-Type": "application/json"
-      }
-    })
 
     if (!crmResponse.ok) {
       const errorText = await crmResponse.text()
@@ -163,8 +155,6 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    
-    // Provide more specific error messages for common issues
     if (error instanceof Error) {
       if (error.message.includes('self-signed certificate')) {
         return NextResponse.json({ 
@@ -176,7 +166,7 @@ export async function GET(request: NextRequest) {
       if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
         return NextResponse.json({ 
           error: "Connection Error",
-          details: "Unable to connect to the CRM server. Please check the API endpoint configuration."
+          details: "Unable to connect to the CRM server. Please check if the server is running and the API endpoint URL is correct."
         }, { status: 500 })
       }
     }

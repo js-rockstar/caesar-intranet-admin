@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { requireAuth, requireAdminAuth, createAuthResponse } from "@/lib/auth-middleware"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
@@ -13,6 +14,12 @@ export async function GET(
   { params }: { params: Promise<{ key: string }> }
 ) {
   try {
+    const authResult = await requireAuth()
+
+    if ("error" in authResult) {
+      return createAuthResponse(authResult)
+    }
+
     const { key } = await params
 
     const setting = await prisma.setting.findUnique({
@@ -29,7 +36,6 @@ export async function GET(
     return NextResponse.json({ setting })
 
   } catch (error) {
-    console.error("Error fetching setting:", error)
     return NextResponse.json(
       { error: "Failed to fetch setting" },
       { status: 500 }
@@ -43,6 +49,12 @@ export async function PUT(
   { params }: { params: Promise<{ key: string }> }
 ) {
   try {
+    const authResult = await requireAdminAuth()
+
+    if ("error" in authResult) {
+      return createAuthResponse(authResult)
+    }
+
     const { key } = await params
     const body = await request.json()
     const validatedData = updateSettingSchema.parse(body)
@@ -66,7 +78,6 @@ export async function PUT(
     })
 
   } catch (error) {
-    console.error("Error updating setting:", error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid data", details: error.errors },
@@ -86,6 +97,12 @@ export async function DELETE(
   { params }: { params: Promise<{ key: string }> }
 ) {
   try {
+    const authResult = await requireAdminAuth()
+
+    if ("error" in authResult) {
+      return createAuthResponse(authResult)
+    }
+
     const { key } = await params
 
     await prisma.setting.delete({
@@ -98,7 +115,6 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error("Error deleting setting:", error)
     return NextResponse.json(
       { error: "Failed to delete setting" },
       { status: 500 }

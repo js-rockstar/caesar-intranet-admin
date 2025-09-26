@@ -123,36 +123,19 @@ export async function testCrmConnection(
       authToken = settings.token
     }
     
-    // Test the connection by making a request to the test endpoint
-    // Since endpoints always end with "/", we append "test" directly
-    
-    // Create a custom fetch function that handles SSL certificates
-    const customFetch = async (url: string, options: RequestInit) => {
-      // For development, temporarily disable SSL verification
-      const originalRejectUnauthorized = process.env.NODE_TLS_REJECT_UNAUTHORIZED
-      if (process.env.NODE_ENV === 'development') {
-        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
-      }
-      
-      try {
-        const response = await fetch(url, options)
-        return response
-      } finally {
-        // Restore original setting
-        if (originalRejectUnauthorized !== undefined) {
-          process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalRejectUnauthorized
-        } else {
-          delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
-        }
-      }
-    }
+    // Set SSL environment variable globally for this request
+    const originalRejectUnauthorized = process.env.NODE_TLS_REJECT_UNAUTHORIZED
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
     
     try {
-      const response = await customFetch(`${endpoint}test`, {
+      // Test the connection by making a request to the test endpoint
+      const response = await fetch(`${endpoint}test`, {
         method: 'GET',
         headers: {
           'authtoken': authToken,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'User-Agent': 'Caesar-Intranet/1.0',
+          'Accept': 'application/json'
         },
         // Add timeout for faster testing
         signal: AbortSignal.timeout(10000) // 10 second timeout
@@ -191,9 +174,36 @@ export async function testCrmConnection(
         }
       }
     } catch (error) {
+      // Handle specific error types
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          return {
+            success: false,
+            message: 'Connection timeout - CRM server did not respond within 10 seconds'
+          }
+        } else if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
+          return {
+            success: false,
+            message: 'Cannot connect to CRM server - check the API endpoint URL'
+          }
+        } else if (error.message.includes('CERT_HAS_EXPIRED') || error.message.includes('UNABLE_TO_VERIFY_LEAF_SIGNATURE')) {
+          return {
+            success: false,
+            message: 'SSL certificate error - CRM server has invalid or expired certificate'
+          }
+        }
+      }
+      
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Connection failed'
+      }
+    } finally {
+      // Restore original SSL setting
+      if (originalRejectUnauthorized !== undefined) {
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalRejectUnauthorized
+      } else {
+        delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
       }
     }
   } catch (error) {

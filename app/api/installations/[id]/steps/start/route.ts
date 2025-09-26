@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { requireAuth, createAuthResponse } from "@/lib/auth-middleware"
 import { prisma } from "@/lib/prisma"
 import { createInstallationService } from "@/lib/services/installation"
 import { getAllProjectSettings } from "@/lib/utils/entity-meta/project-settings"
@@ -18,13 +17,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   let body: any = null
   
   try {
-    const session = await getServerSession(authOptions)
+    const authResult = await requireAuth()
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-    if (session.user.role !== "ADMIN" && session.user.role !== "STAFF") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if ("error" in authResult) {
+      return createAuthResponse(authResult)
     }
 
     const { id } = await params

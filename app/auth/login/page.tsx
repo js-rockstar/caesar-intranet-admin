@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { AuthGuard } from "@/components/auth/AuthGuard"
+import { AuthGuard } from "@/components/auth/auth-guard"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")

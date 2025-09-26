@@ -1,7 +1,7 @@
 "use client"
 
 import { ComponentType } from "react"
-import { AuthGuard } from "./AuthGuard"
+import { AuthGuard } from "./auth-guard"
 
 export function withAuth<P extends object>(
   WrappedComponent: ComponentType<P>,

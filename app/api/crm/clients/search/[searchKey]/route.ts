@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { requireAuth, createAuthResponse } from "@/lib/auth-middleware"
 import { prisma } from "@/lib/prisma"
 
 // Helper function to decode HTML entities
@@ -32,14 +31,10 @@ export async function GET(
   { params }: { params: Promise<{ searchKey: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const authResult = await requireAuth()
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    if (session.user.role !== "ADMIN" && session.user.role !== "STAFF") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if ("error" in authResult) {
+      return createAuthResponse(authResult)
     }
 
     // Get CRM settings from database
@@ -68,34 +63,26 @@ export async function GET(
     // Make request to CRM search API
     const crmUrl = `${crmEndpoint.value}clients/search/${encodeURIComponent(searchKey.trim())}`
     
-    // Create a custom fetch function that handles SSL certificates
-    const customFetch = async (url: string, options: RequestInit) => {
-      // For development, temporarily disable SSL verification
-      const originalRejectUnauthorized = process.env.NODE_TLS_REJECT_UNAUTHORIZED
-      if (process.env.NODE_ENV === 'development') {
-        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
-      }
-      
-      try {
-        const response = await fetch(url, options)
-        return response
-      } finally {
-        // Restore original setting
-        if (originalRejectUnauthorized !== undefined) {
-          process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalRejectUnauthorized
-        } else {
-          delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
+    // Set SSL handling for development mode
+    const originalRejectUnauthorized = process.env.NODE_TLS_REJECT_UNAUTHORIZED
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+    
+    let crmResponse
+    try {
+      crmResponse = await fetch(crmUrl, {
+        method: "GET",
+        headers: {
+          "authtoken": crmToken.value,
+          "Content-Type": "application/json"
         }
+      })
+    } finally {
+      if (originalRejectUnauthorized !== undefined) {
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalRejectUnauthorized
+      } else {
+        delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
       }
     }
-    
-    const crmResponse = await customFetch(crmUrl, {
-      method: "GET",
-      headers: {
-        "authtoken": crmToken.value,
-        "Content-Type": "application/json"
-      }
-    })
 
     if (!crmResponse.ok) {
       const errorText = await crmResponse.text()

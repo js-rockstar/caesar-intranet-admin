@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { requireAuth, createAuthResponse } from "@/lib/auth-middleware"
 import { prisma } from "@/lib/prisma"
 import { installationSchema } from "@/lib/validations/site"
 
@@ -34,15 +33,6 @@ interface SiteWithSteps {
 }
 
 // Helper functions
-function validateUserAuthorization(session: any): void {
-  if (!session?.user) {
-    throw new Error("User not authenticated")
-  }
-
-  if (!AUTHORIZED_ROLES.includes(session.user.role)) {
-    throw new Error("User not authorized for this operation")
-  }
-}
 
 function shouldResetSteps(existingSite: SiteWithSteps): boolean {
   const hasSuccessfulSteps = existingSite.steps.some(
@@ -197,8 +187,11 @@ async function getSiteWithRelations(tx: any, siteId: number) {
 export async function POST(request: NextRequest) {
   try {
     // Authentication and authorization
-    const session = await getServerSession(authOptions)
-    validateUserAuthorization(session)
+    const authResult = await requireAuth()
+
+    if ("error" in authResult) {
+      return createAuthResponse(authResult)
+    }
     
     // Input validation
     const body = await request.json()

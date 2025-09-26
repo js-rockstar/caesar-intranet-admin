@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { requireAuth, createAuthResponse } from "@/lib/auth-middleware"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { formatPhoneNumber, isValidPhoneNumber } from "@/lib/utils/phone"
@@ -190,14 +189,10 @@ const importClientSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const authResult = await requireAuth()
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    if (session.user.role !== "ADMIN" && session.user.role !== "STAFF") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if ("error" in authResult) {
+      return createAuthResponse(authResult)
     }
 
     const body = await request.json()

@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { requireAuth, requireAdminAuth, createAuthResponse } from "@/lib/auth-middleware"
 import { prisma } from "@/lib/prisma"
 import {
   getAllProjectSettings,
@@ -15,15 +14,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const authResult = await requireAuth()
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    // Check user role
-    if (session.user.role !== "ADMIN" && session.user.role !== "STAFF") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if ("error" in authResult) {
+      return createAuthResponse(authResult)
     }
 
     const { id } = await params
@@ -73,7 +67,6 @@ export async function GET(
       validation
     })
   } catch (error) {
-    console.error("Error fetching project settings:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -83,15 +76,10 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const authResult = await requireAuth()
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    // Check user role
-    if (session.user.role !== "ADMIN" && session.user.role !== "STAFF") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if ("error" in authResult) {
+      return createAuthResponse(authResult)
     }
 
     const { id } = await params
@@ -155,7 +143,6 @@ export async function PUT(
       validation
     })
   } catch (error) {
-    console.error("Error updating project settings:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
@@ -165,15 +152,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const authResult = await requireAdminAuth()
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    // Check user role - only admins can reset settings
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if ("error" in authResult) {
+      return createAuthResponse(authResult)
     }
 
     const { id } = await params
@@ -205,7 +187,6 @@ export async function DELETE(
       }
     })
   } catch (error) {
-    console.error("Error resetting project settings:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

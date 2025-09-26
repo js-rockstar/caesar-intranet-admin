@@ -1,40 +1,17 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { requireAuth, createAuthResponse } from "@/lib/auth-middleware"
+import { StatsService } from "@/lib/services/stats-service"
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const authResult = await requireAuth()
+    
+    if ("error" in authResult) {
+      return createAuthResponse(authResult)
     }
 
-    // Check user role
-    if (session.user.role !== "ADMIN" && session.user.role !== "STAFF") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    // Get site statistics
-    const [
-      totalSites,
-      completedSites,
-      inProgressSites,
-      pendingSites
-    ] = await Promise.all([
-      prisma.site.count(),
-      prisma.site.count({ where: { status: "COMPLETED" } }),
-      prisma.site.count({ where: { status: "IN_PROGRESS" } }),
-      prisma.site.count({ where: { status: "PENDING" } })
-    ])
-
-    return NextResponse.json({
-      totalSites,
-      completedSites,
-      inProgressSites,
-      pendingSites
-    })
+    const stats = await StatsService.getSiteStats()
+    return NextResponse.json(stats)
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }

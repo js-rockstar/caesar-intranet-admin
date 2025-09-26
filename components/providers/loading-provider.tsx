@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { LoadingOverlay } from "@/components/ui/loading-overlay"
+import { UnifiedLoadingOverlay } from "@/components/ui/unified-loading-overlay"
 
 interface LoadingContextType {
   isLoading: boolean
@@ -40,9 +40,12 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <LoadingContext.Provider value={{ isLoading, setLoading }}>
-      <LoadingOverlay isLoading={isLoading}>
+      <UnifiedLoadingOverlay 
+        page="dashboard"
+        message="Loading page..."
+      >
         {children}
-      </LoadingOverlay>
+      </UnifiedLoadingOverlay>
     </LoadingContext.Provider>
   )
 }
